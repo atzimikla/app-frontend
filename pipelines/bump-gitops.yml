@@ -16,7 +16,7 @@ parameters:
     default: 'github.com/atzimikla/gitops-apps.git'
   - name: gitopsBranch
     type: string
-    default: 'main'
+    default: 'master'
 
 jobs:
   - job: BumpGitops
