@@ -32,8 +32,13 @@ jobs:
 
       - script: |
           set -euo pipefail
-          curl -sSL https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh | bash
-          sudo mv kustomize /usr/local/bin/
+          # Pinneado a v5.5.0 para evitar el rate limit de la GitHub API que
+          # usa el install_kustomize.sh oficial. Bajamos el tarball directo
+          # del release. Para subir version, cambiar la variable.
+          KUSTOMIZE_VERSION="v5.5.0"
+          curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C /tmp
+          sudo mv /tmp/kustomize /usr/local/bin/
           kustomize version
         displayName: Install kustomize
 
