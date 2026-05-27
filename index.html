@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prime Checker</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      max-width: 480px;
+      margin: 4rem auto;
+      padding: 0 1rem;
+    }
+    h1 { margin-bottom: 0.25rem; }
+    p.subtitle { color: #6b7280; margin-top: 0; }
+    form { display: flex; gap: 0.5rem; margin: 1.5rem 0; }
+    input[type=number] {
+      flex: 1;
+      padding: 0.6rem 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      border: 0;
+      border-radius: 6px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .result {
+      padding: 1rem;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      min-height: 1.5rem;
+    }
+    .result.prime { border-color: #10b981; background: #ecfdf5; color: #065f46; }
+    .result.not-prime { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
+    .result.error { border-color: #ef4444; background: #fef2f2; color: #991b1b; }
+  </style>
+</head>
+<body>
+  <h1>Prime Checker</h1>
+  <p class="subtitle">Ingresá un número entero y consultamos al backend.</p>
+
+  <form id="form">
+    <input id="n" type="number" placeholder="Ej: 17" required />
+    <button type="submit">Verificar</button>
+  </form>
+
+  <div id="result" class="result">Esperando entrada…</div>
+
+  <script>
+    const form = document.getElementById("form");
+    const input = document.getElementById("n");
+    const result = document.getElementById("result");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const n = input.value;
+      result.className = "result";
+      result.textContent = "Consultando…";
+      try {
+        const r = await fetch(`/api/is-prime?n=${encodeURIComponent(n)}`);
+        const data = await r.json();
+        if (!r.ok) {
+          result.classList.add("error");
+          result.textContent = `Error: ${data.error || r.status}`;
+          return;
+        }
+        if (data.is_prime) {
+          result.classList.add("prime");
+          result.textContent = `${data.n} ES primo ✓`;
+        } else {
+          result.classList.add("not-prime");
+          result.textContent = `${data.n} NO es primo`;
+        }
+      } catch (err) {
+        result.classList.add("error");
+        result.textContent = `Error de red: ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
