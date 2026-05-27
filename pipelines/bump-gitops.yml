@@ -1,0 +1,93 @@
+# Bump del overlay dev en gitops-apps despues del push exitoso a ECR.
+# Cierra el loop GitOps: nuevo SHA en ECR -> commit a gitops-apps -> ArgoCD aplica.
+#
+# Requiere variable group `gitops-bot-creds` con GITOPS_PAT (PAT fine-grained
+# con Contents: Read+Write sobre el repo gitops-apps).
+
+parameters:
+  - name: appName
+    type: string
+  - name: ecrImageUri
+    type: string
+  - name: overlayPath
+    type: string
+  - name: gitopsRepo
+    type: string
+    default: 'github.com/atzimikla/gitops-apps.git'
+  - name: gitopsBranch
+    type: string
+    default: 'main'
+
+jobs:
+  - job: BumpGitops
+    displayName: Bump image tag in gitops-apps
+    pool:
+      vmImage: ubuntu-latest
+    variables:
+      - group: gitops-bot-creds
+      - name: imageShaTag
+        value: $[ stageDependencies.BuildAndPush.BuildAndPush.outputs['pushStep.imageShaTag'] ]
+    steps:
+      - checkout: none
+
+      - script: |
+          set -euo pipefail
+          curl -sSL https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh | bash
+          sudo mv kustomize /usr/local/bin/
+          kustomize version
+        displayName: Install kustomize
+
+      - script: |
+          set -euo pipefail
+          git clone --branch ${{ parameters.gitopsBranch }} \
+            "https://x-access-token:${GITOPS_PAT}@${{ parameters.gitopsRepo }}" \
+            /tmp/gitops-apps
+          echo "Repo clonado en /tmp/gitops-apps (rev $(cd /tmp/gitops-apps && git rev-parse HEAD))"
+        displayName: Clone gitops-apps
+        env:
+          GITOPS_PAT: $(GITOPS_PAT)
+
+      - script: |
+          set -euo pipefail
+          cd /tmp/gitops-apps/${{ parameters.overlayPath }}
+          kustomize edit set image ${{ parameters.appName }}=${{ parameters.ecrImageUri }}:$(imageShaTag)
+
+          echo "=== Diff ==="
+          cd /tmp/gitops-apps
+          git diff
+        displayName: Bump newTag with kustomize edit set image
+
+      - script: |
+          set -euo pipefail
+          cd /tmp/gitops-apps
+          kubectl kustomize ${{ parameters.overlayPath }} | grep -E '^\s+image:' | head -5
+          kubectl kustomize ${{ parameters.overlayPath }} > /dev/null
+          echo "Render OK"
+        displayName: Verify rendered manifest still valid
+
+      - script: |
+          set -euo pipefail
+          cd /tmp/gitops-apps
+          git config user.email "azdo-pipeline-bot@noreply.invalid"
+          git config user.name "azdo-pipeline-bot"
+
+          if git diff --quiet -- ${{ parameters.overlayPath }}/kustomization.yaml; then
+            echo "Sin cambios para commitear (overlay ya estaba en $(imageShaTag))."
+            exit 0
+          fi
+
+          git add ${{ parameters.overlayPath }}/kustomization.yaml
+          git commit -m "chore(${{ parameters.appName }}): bump dev image to $(imageShaTag) [skip ci]"
+
+          for attempt in 1 2 3; do
+            git pull --rebase origin ${{ parameters.gitopsBranch }} || true
+            if git push origin ${{ parameters.gitopsBranch }}; then
+              echo "Push OK en intento $attempt"
+              exit 0
+            fi
+            echo "Push fallo en intento $attempt, reintentando en 5s..."
+            sleep 5
+          done
+          echo "##[error]No se logro pushear despues de 3 intentos"
+          exit 1
+        displayName: Commit and push to gitops-apps
