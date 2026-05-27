@@ -41,9 +41,19 @@
     .result.prime { border-color: #10b981; background: #ecfdf5; color: #065f46; }
     .result.not-prime { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
     .result.error { border-color: #ef4444; background: #fef2f2; color: #991b1b; }
+    .welcome {
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      padding: 0.6rem 0.9rem;
+      margin-bottom: 1rem;
+      border-radius: 4px;
+      color: #1e3a8a;
+      font-size: 0.95rem;
+    }
   </style>
 </head>
 <body>
+  <p class="welcome">¡Bienvenido! Esta página fue desplegada por el loop GitOps end-to-end (Azure Pipelines → ECR → bump a gitops-apps → ArgoCD → minikube).</p>
   <h1>Prime Checker</h1>
   <p class="subtitle">Ingresá un número entero y consultamos al backend.</p>
 
