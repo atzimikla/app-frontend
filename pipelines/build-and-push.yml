@@ -1,0 +1,60 @@
+# Build + push a ECR via OIDC.
+# Solo corre en push a main (no en PRs), por el filtro del stage padre.
+# Identico a app-backend cambiando SC y nombre de repo.
+
+parameters:
+  - name: awsRegion
+    type: string
+  - name: ecrRegistry
+    type: string
+  - name: imageRepo
+    type: string
+
+jobs:
+  - job: BuildAndPush
+    displayName: Docker build and push to ECR
+    pool:
+      vmImage: ubuntu-latest
+    variables:
+      aws.rolecredential.maxduration: 3600
+    steps:
+      - checkout: self
+
+      - task: AWSShellScript@1
+        displayName: ECR login + docker build + push
+        inputs:
+          awsCredentials: 'aws-ecr-pusher-frontend-oidc'
+          regionName: ${{ parameters.awsRegion }}
+          scriptType: inline
+          inlineScript: |
+            set -euo pipefail
+
+            SHORT_SHA=$(echo "$BUILD_SOURCEVERSION" | cut -c1-7)
+            FULL_IMAGE_SHA="${{ parameters.ecrRegistry }}/${{ parameters.imageRepo }}:${SHORT_SHA}"
+            FULL_IMAGE_DEV="${{ parameters.ecrRegistry }}/${{ parameters.imageRepo }}:dev"
+
+            echo "=== ECR login ==="
+            aws ecr get-login-password --region ${{ parameters.awsRegion }} \
+              | docker login --username AWS --password-stdin ${{ parameters.ecrRegistry }}
+
+            echo "=== Docker build (tags: ${SHORT_SHA}, dev) ==="
+            docker build \
+              --tag "${FULL_IMAGE_SHA}" \
+              --tag "${FULL_IMAGE_DEV}" \
+              .
+
+            echo "=== Docker push ${FULL_IMAGE_SHA} ==="
+            docker push "${FULL_IMAGE_SHA}"
+
+            echo "=== Docker push ${FULL_IMAGE_DEV} ==="
+            docker push "${FULL_IMAGE_DEV}"
+
+            echo ""
+            echo "=== Summary ==="
+            echo "Imagen pusheada:"
+            echo "  Immutable: ${FULL_IMAGE_SHA}"
+            echo "  Mutable:   ${FULL_IMAGE_DEV}"
+            echo ""
+            echo "##vso[task.setvariable variable=imageShaTag;isOutput=true]${SHORT_SHA}"
+            echo "##vso[task.setvariable variable=imageFullSha;isOutput=true]${FULL_IMAGE_SHA}"
+        name: pushStep

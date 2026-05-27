@@ -1,0 +1,24 @@
+# Validacion del PR: builda la imagen y valida la config de nginx adentro.
+# No pushea nada. No requiere credenciales AWS.
+
+jobs:
+  - job: Validate
+    displayName: Build image + nginx config check
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+      - checkout: self
+
+      - script: |
+          set -euo pipefail
+
+          echo "=== Build (no push) ==="
+          docker build --tag app-frontend:ci-validate .
+
+          echo "=== nginx -t (valida la config dentro del container) ==="
+          docker run --rm app-frontend:ci-validate nginx -t
+
+          echo "=== index.html size ==="
+          ls -la index.html
+          test -s index.html
+        displayName: docker build + nginx config test

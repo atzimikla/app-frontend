@@ -1,0 +1,35 @@
+# Pipeline raiz para app-frontend.
+# Spec: build + push a ECR via OIDC (aws-ecr-pusher-frontend-oidc).
+# Mismo patron que app-backend, solo cambia la imagen (nginx:alpine) y la SC.
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+variables:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 875585125966.dkr.ecr.us-east-1.amazonaws.com
+  IMAGE_REPO: app-frontend
+
+stages:
+  - stage: Validate
+    displayName: Validate
+    jobs:
+      - template: pipelines/validate.yml
+
+  - stage: BuildAndPush
+    displayName: Build and Push
+    dependsOn: Validate
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - template: pipelines/build-and-push.yml
+        parameters:
+          awsRegion: $(AWS_REGION)
+          ecrRegistry: $(ECR_REGISTRY)
+          imageRepo: $(IMAGE_REPO)
