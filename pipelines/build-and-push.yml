@@ -1,5 +1,5 @@
 # Build + push a ECR via OIDC.
-# Solo corre en push a main (no en PRs), por el filtro del stage padre.
+# Solo corre en push a master (no en PRs), por el filtro del stage padre.
 # Identico a app-backend cambiando SC y nombre de repo.
 
 parameters:
