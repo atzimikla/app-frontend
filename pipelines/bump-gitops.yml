@@ -60,9 +60,12 @@ jobs:
       - script: |
           set -euo pipefail
           cd /tmp/gitops-apps
-          kubectl kustomize ${{ parameters.overlayPath }} | grep -E '^\s+image:' | head -5
-          kubectl kustomize ${{ parameters.overlayPath }} > /dev/null
-          echo "Render OK"
+          echo "=== Validating render of ${{ parameters.overlayPath }} ==="
+          kubectl kustomize ${{ parameters.overlayPath }} > /tmp/rendered.yaml
+          echo "Render OK ($(wc -l < /tmp/rendered.yaml) lines)"
+          echo ""
+          echo "=== Image references in rendered manifest ==="
+          grep -E 'image:' /tmp/rendered.yaml || echo "(no image lines found)"
         displayName: Verify rendered manifest still valid
 
       - script: |
