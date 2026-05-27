@@ -16,7 +16,11 @@ jobs:
           docker build --tag app-frontend:ci-validate .
 
           echo "=== nginx -t (valida la config dentro del container) ==="
-          docker run --rm app-frontend:ci-validate nginx -t
+          # nginx -t resuelve los upstreams al startup. En CI no existe el host
+          # 'app-backend', asi que le damos un alias falso a 127.0.0.1 solo para
+          # que la resolucion no falle. En docker-compose y K8s el DNS real
+          # resuelve correctamente sin necesidad de este truco.
+          docker run --rm --add-host=app-backend:127.0.0.1 app-frontend:ci-validate nginx -t
 
           echo "=== index.html size ==="
           ls -la index.html
