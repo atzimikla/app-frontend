@@ -33,3 +33,14 @@ stages:
           awsRegion: $(AWS_REGION)
           ecrRegistry: $(ECR_REGISTRY)
           imageRepo: $(IMAGE_REPO)
+
+  - stage: BumpGitops
+    displayName: Bump gitops-apps with new SHA
+    dependsOn: BuildAndPush
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - template: pipelines/bump-gitops.yml
+        parameters:
+          appName: app-frontend
+          ecrImageUri: $(ECR_REGISTRY)/$(IMAGE_REPO)
+          overlayPath: manifests/app-frontend/overlays/dev
