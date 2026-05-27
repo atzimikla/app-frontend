@@ -50,10 +50,13 @@
       color: #1e3a8a;
       font-size: 0.95rem;
     }
+    h2 { margin-top: 2.5rem; margin-bottom: 0.25rem; }
+    hr.section-divider { margin: 2rem 0; border: 0; border-top: 1px solid #e5e7eb; }
   </style>
 </head>
 <body>
   <p class="welcome">¡Bienvenido! Esta página fue desplegada por el loop GitOps end-to-end (Azure Pipelines → ECR → bump a gitops-apps → ArgoCD → minikube). Que Dios te bendiga.</p>
+
   <h1>Prime Checker</h1>
   <p class="subtitle">Ingresá un número entero y consultamos al backend.</p>
 
@@ -63,6 +66,18 @@
   </form>
 
   <div id="result" class="result">Esperando entrada…</div>
+
+  <hr class="section-divider" />
+
+  <h2>Palíndromo</h2>
+  <p class="subtitle">¿La palabra o frase se lee igual al derecho y al revés?</p>
+
+  <form id="form-pal">
+    <input id="word" type="text" placeholder="Ej: Anita lava la tina" required />
+    <button type="submit">Verificar</button>
+  </form>
+
+  <div id="result-pal" class="result">Esperando entrada…</div>
 
   <script>
     const form = document.getElementById("form");
@@ -92,6 +107,36 @@
       } catch (err) {
         result.classList.add("error");
         result.textContent = `Error de red: ${err.message}`;
+      }
+    });
+
+    const formPal = document.getElementById("form-pal");
+    const wordInput = document.getElementById("word");
+    const resultPal = document.getElementById("result-pal");
+
+    formPal.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const word = wordInput.value;
+      resultPal.className = "result";
+      resultPal.textContent = "Consultando…";
+      try {
+        const r = await fetch(`/api/is-palindrome?word=${encodeURIComponent(word)}`);
+        const data = await r.json();
+        if (!r.ok) {
+          resultPal.classList.add("error");
+          resultPal.textContent = `Error: ${data.error || r.status}`;
+          return;
+        }
+        if (data.is_palindrome) {
+          resultPal.classList.add("prime");
+          resultPal.textContent = `"${data.word}" ES palíndromo ✓`;
+        } else {
+          resultPal.classList.add("not-prime");
+          resultPal.textContent = `"${data.word}" NO es palíndromo`;
+        }
+      } catch (err) {
+        resultPal.classList.add("error");
+        resultPal.textContent = `Error de red: ${err.message}`;
       }
     });
   </script>
