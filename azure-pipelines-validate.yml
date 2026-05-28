@@ -1,0 +1,17 @@
+# Pipeline de validation para PRs contra develop.
+# Corre el stage Validate (secrets scan, Dockerfile lint, build + nginx -t).
+# No requiere credenciales AWS — pensado para no exponer la Service Connection
+# de ECR a codigo no mergeado.
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - develop
+
+stages:
+  - stage: Validate
+    displayName: Validate
+    jobs:
+      - template: pipelines/validate.yml
