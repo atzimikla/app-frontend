@@ -1,0 +1,9 @@
+# Archivo intencional para validar que gitleaks detecta secretos en PRs
+# de app-frontend. Las "credenciales" abajo son FAKES — el patron matchea
+# la regex de AWS pero los valores no corresponden a una cuenta real.
+#
+# Esperado: gitleaks falla el pipeline. Tras confirmar, cerrar PR y borrar
+# branch.
+
+AWS_ACCESS_KEY_ID=AKIATEST1234567ABCDE
+AWS_SECRET_ACCESS_KEY=abcdEFGH1234567890XYZxyzAbCdEfGhIjKlMnOp
