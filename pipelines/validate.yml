@@ -94,7 +94,15 @@ jobs:
           curl -fsSL "https://github.com/goodwithtech/dockle/releases/download/v${DOCKLE_VERSION}/dockle_${DOCKLE_VERSION}_Linux-64bit.tar.gz" \
             | tar -xz -C /tmp dockle
           sudo mv /tmp/dockle /usr/local/bin/
-          dockle --exit-code 1 --exit-level FATAL app-frontend:ci-validate
+          # --accept-key KEY_SHA512: la imagen upstream de nginx:alpine usa
+          # esta ENV en una capa intermedia para verificar el SHA512 de la
+          # clave firmante de los paquetes nginx (no es un secreto, es un
+          # hash publico). Dockle nativamente soporta whitelistearlo asi.
+          dockle \
+            --exit-code 1 \
+            --exit-level FATAL \
+            --accept-key KEY_SHA512 \
+            app-frontend:ci-validate
         displayName: Dockle (container best practices)
 
       - script: |
