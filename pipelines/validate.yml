@@ -1,4 +1,5 @@
-# Validacion del PR: secrets scan + Dockerfile lint + SCA + build + nginx config check.
+# Validacion del PR: secrets scan + Dockerfile lint + SCA + build + nginx config
+# check + container best-practices + SBOM.
 # No pushea nada. No requiere credenciales AWS.
 
 jobs:
@@ -83,3 +84,43 @@ jobs:
             --no-progress \
             app-frontend:ci-validate
         displayName: Trivy image scan (container SCA)
+
+      - script: |
+          set -euo pipefail
+          # Container best-practices / CIS Docker Benchmark sobre la imagen
+          # buildeada. Bloquea solo en FATAL. WARN/INFO se logan pero no
+          # rompen.
+          DOCKLE_VERSION="0.4.15"
+          curl -fsSL "https://github.com/goodwithtech/dockle/releases/download/v${DOCKLE_VERSION}/dockle_${DOCKLE_VERSION}_Linux-64bit.tar.gz" \
+            | tar -xz -C /tmp dockle
+          sudo mv /tmp/dockle /usr/local/bin/
+          # --accept-key KEY_SHA512: la imagen upstream de nginx:alpine usa
+          # esta ENV en una capa intermedia para verificar el SHA512 de la
+          # clave firmante de los paquetes nginx (no es un secreto, es un
+          # hash publico). Dockle nativamente soporta whitelistearlo asi.
+          dockle \
+            --exit-code 1 \
+            --exit-level FATAL \
+            --accept-key KEY_SHA512 \
+            app-frontend:ci-validate
+        displayName: Dockle (container best practices)
+
+      - script: |
+          set -euo pipefail
+          # Genera Software Bill of Materials (SBOM) en formato CycloneDX-JSON.
+          # No bloquea — se publica como artifact de la pipeline para auditoria
+          # y vuln tracking posterior.
+          SYFT_VERSION="1.44.0"
+          curl -fsSL "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C /tmp syft
+          sudo mv /tmp/syft /usr/local/bin/
+          syft app-frontend:ci-validate -o cyclonedx-json=sbom.json
+          echo "=== SBOM summary ==="
+          syft app-frontend:ci-validate -o table | head -50
+        displayName: Syft (generate SBOM)
+
+      - task: PublishPipelineArtifact@1
+        inputs:
+          path: $(System.DefaultWorkingDirectory)/sbom.json
+          artifact: sbom-frontend-$(Build.BuildId)
+        displayName: Publish SBOM artifact
