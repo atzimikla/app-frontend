@@ -1,0 +1,11 @@
+# Archivo intencional para validar que branch protection bloquea el merge
+# en app-frontend cuando el status check Validate esta rojo.
+#
+# Esperado:
+# 1. Pipeline Validate corre y falla en step Gitleaks.
+# 2. Status check Validate queda rojo en GitHub.
+# 3. Boton "Merge pull request" aparece DISABLED.
+# 4. Tras esta verificacion: cerrar PR, eliminar branch.
+
+AWS_ACCESS_KEY_ID=AKIATEST1234567ABCDE
+AWS_SECRET_ACCESS_KEY=abcdEFGH1234567890XYZxyzAbCdEfGhIjKlMnOp
