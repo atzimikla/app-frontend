@@ -1,5 +1,5 @@
-# Validacion del PR: secrets scan + Dockerfile lint + SCA + build + nginx config
-# check + container best-practices + SBOM.
+# Validacion del PR: secrets scan + Dockerfile lint + HTML lint + SCA + build
+# + nginx config check + container best-practices + SBOM.
 # No pushea nada. No requiere credenciales AWS.
 
 jobs:
@@ -39,6 +39,15 @@ jobs:
           sudo mv /tmp/trivy /usr/local/bin/
           trivy --version
         displayName: Install trivy
+
+      - script: |
+          set -euo pipefail
+          # HTML lint sobre index.html. Detecta tags malformados, atributos
+          # invalidos, problemas de accesibilidad y de SEO basico. Default
+          # config — si pega mucho, sumamos .htmlhintrc con rules a desactivar.
+          npm install --global htmlhint@1.9.2
+          htmlhint index.html
+        displayName: htmlhint (HTML lint)
 
       - script: |
           set -euo pipefail
