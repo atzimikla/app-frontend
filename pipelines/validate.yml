@@ -1,4 +1,4 @@
-# Validacion del PR: secrets scan + Dockerfile lint + build + nginx config check.
+# Validacion del PR: secrets scan + Dockerfile lint + SCA + build + nginx config check.
 # No pushea nada. No requiere credenciales AWS.
 
 jobs:
@@ -30,6 +30,31 @@ jobs:
 
       - script: |
           set -euo pipefail
+          # Trivy se usa para los 2 scans de SCA (fs + image) — instalamos una
+          # sola vez aca.
+          TRIVY_VERSION="0.70.0"
+          curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
+            | tar -xz -C /tmp trivy
+          sudo mv /tmp/trivy /usr/local/bin/
+          trivy --version
+        displayName: Install trivy
+
+      - script: |
+          set -euo pipefail
+          # SCA a nivel source: scanea manifests de dependencies en el repo.
+          # Frontend no tiene deps de codigo (HTML/nginx puro) pero corremos
+          # por consistencia con backend y para detectar si algun dia se suma
+          # package.json u otro manifest.
+          trivy fs \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            --no-progress \
+            .
+        displayName: Trivy fs scan (source SCA)
+
+      - script: |
+          set -euo pipefail
 
           echo "=== Build (no push) ==="
           docker build --tag app-frontend:ci-validate .
@@ -45,3 +70,16 @@ jobs:
           ls -la index.html
           test -s index.html
         displayName: docker build + nginx config test
+
+      - script: |
+          set -euo pipefail
+          # SCA a nivel container: scan de OS packages de la imagen base
+          # (nginx:alpine) + cualquier dep instalada. Misma politica que
+          # trivy fs (HIGH/CRITICAL con fix upstream).
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            --no-progress \
+            app-frontend:ci-validate
+        displayName: Trivy image scan (container SCA)
