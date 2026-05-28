@@ -1,12 +1,12 @@
 # app-frontend
 
-HTML + JS plano servido por Nginx. Consume el backend `app-backend` para verificar si un número es primo.
+HTML + JS plano servido por Nginx. Consume el backend `app-backend` para verificar si un número es primo o si una palabra es palíndromo.
 
 Nota: a pesar del nombre histórico del README, esta app es HTML/Nginx, no Python — se eligió por simplicidad para validar Docker y GitOps.
 
 ## Estructura
 
-- `index.html` — form + fetch a `/api/is-prime`.
+- `index.html` — forms + fetch a `/api/is-prime` y `/api/is-palindrome`.
 - `nginx.conf` — sirve `index.html`, expone `/health`, y hace `proxy_pass /api/ → http://app-backend:8080/`.
 - `Dockerfile` — `nginx:alpine` con los dos archivos copiados.
 
