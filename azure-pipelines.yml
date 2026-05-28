@@ -5,12 +5,12 @@
 trigger:
   branches:
     include:
-      - master
+      - develop
 
 pr:
   branches:
     include:
-      - master
+      - develop
 
 variables:
   AWS_REGION: us-east-1
