@@ -45,7 +45,7 @@ jobs:
           # HTML lint sobre index.html. Detecta tags malformados, atributos
           # invalidos, problemas de accesibilidad y de SEO basico. Default
           # config — si pega mucho, sumamos .htmlhintrc con rules a desactivar.
-          npm install --global htmlhint@1.1.11
+          npm install --global htmlhint@1.9.2
           htmlhint index.html
         displayName: htmlhint (HTML lint)
 
